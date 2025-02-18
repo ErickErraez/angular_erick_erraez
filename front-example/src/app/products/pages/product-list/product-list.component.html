@@ -14,7 +14,12 @@
   <div class="card-container">
     <ng-container *ngIf="isLoading; else showData">
       <div class="skeleton-wrapper">
-        <!-- Skeleton -->
+        <div class="skeleton-item" *ngFor="let i of [1, 2, 3, 4, 5]">
+          <div class="skeleton-logo"></div>
+          <div class="skeleton-text skeleton-text-short"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text skeleton-text-long"></div>
+        </div>
       </div>
     </ng-container>
 

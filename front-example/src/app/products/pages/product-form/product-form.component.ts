@@ -51,8 +51,6 @@ export class ProductFormComponent implements OnInit {
         const productFromState = history.state?.product;
         if (productFromState) {
           this.patchForm(productFromState);
-        } else {
-          // Si quisieras cargar del backend, harías loadProduct(this.productId) aquí
         }
       }
     });
@@ -81,7 +79,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   private patchForm(product: Product) {
-    // Aplica los valores al formulario (ID ya está deshabilitado en modo edición)
+    // Aplica los valores al formulario
     this.productForm.patchValue({
       id: product.id,
       name: product.name,
@@ -201,6 +199,9 @@ export class ProductFormComponent implements OnInit {
       error: (err) => {
         this.isError = true;
         this.message = 'Error al actualizar el producto. Inténtelo más tarde.';
+        setTimeout(() => {
+          this.message = null;
+        }, 1000);
       },
     });
   }
@@ -208,7 +209,7 @@ export class ProductFormComponent implements OnInit {
   create(product: Product) {
     this.productService.addProduct(product).subscribe({
       next: (res) => {
-        this.message = res.message; // Asumiendo que viene 'message' del backend
+        this.message = res.message; //'message' del backend
         this.isError = false;
         setTimeout(() => {
           this.router.navigate(['/products']);
@@ -218,6 +219,9 @@ export class ProductFormComponent implements OnInit {
         this.isError = true;
         this.message =
           'Error al crear el producto. Verifique e intente de nuevo.';
+        setTimeout(() => {
+          this.message = null;
+        }, 1000);
       },
     });
   }

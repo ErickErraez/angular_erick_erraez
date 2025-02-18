@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Product } from '../../../core/models/product.model';
 import { ProductService } from '../../../core/services/product.service';
 import { ModalComponent } from '../../components/modal/modal.component';
+import { delay } from 'rxjs/operators';
 
 @Component({
   selector: 'app-product-list',
@@ -40,20 +41,26 @@ export class ProductListComponent implements OnInit {
 
   loadProducts(): void {
     this.isLoading = true;
-    this.productService.getProducts().subscribe({
-      next: (res) => {
-        this.products = res.data;
-        this.filteredProducts = [...this.products];
-        this.isLoading = false;
-        this.message = null;
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.isError = true;
-        this.message =
-          'No se pudieron cargar los productos. Intente más tarde.';
-      },
-    });
+    this.productService
+      .getProducts()
+      .pipe(delay(2000))
+      .subscribe({
+        next: (res) => {
+          this.products = res.data;
+          this.filteredProducts = [...this.products];
+          this.isLoading = false;
+          this.message = null;
+        },
+        error: (err) => {
+          this.isLoading = false;
+          this.isError = true;
+          this.message =
+            'No se pudieron cargar los productos. Intente más tarde.';
+          setTimeout(() => {
+            this.message = null;
+          }, 1000);
+        },
+      });
   }
 
   applyFilter(): void {
@@ -100,11 +107,17 @@ export class ProductListComponent implements OnInit {
         );
         this.applyFilter();
         this.message = res.message || null;
+        setTimeout(() => {
+          this.message = null;
+        }, 1000);
       },
       error: (err) => {
         this.showModal = false;
         this.isError = true;
         this.message = 'Error al eliminar el producto. Intente más tarde.';
+        setTimeout(() => {
+          this.message = null;
+        }, 1000);
       },
     });
   }
