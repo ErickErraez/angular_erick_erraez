@@ -11,12 +11,12 @@ describe('ProductListComponent', () => {
 
   beforeEach(async () => {
     productServiceMock = {
-      getProducts: jasmine.createSpy('getProducts'),
-      deleteProduct: jasmine.createSpy('deleteProduct'),
+      getProducts: jest.fn(),
+      deleteProduct: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
-      // En Angular 14+ con standalone, debes importar el componente en imports
+      // Para componentes standalone, importamos el componente directamente
       imports: [ProductListComponent],
       providers: [{ provide: ProductService, useValue: productServiceMock }],
     }).compileComponents();
@@ -32,40 +32,36 @@ describe('ProductListComponent', () => {
   });
 
   it('debería cargar productos en loadProducts()', () => {
-    const mockProducts = [
-      { id: '1', name: 'Prod1', description: 'Desc1' } as Product,
-      { id: '2', name: 'Prod2', description: 'Desc2' } as Product,
+    const mockProducts: Product[] = [
+      { id: '1', name: 'Prod1', description: 'Desc1', logo: '', date_release: '2025-01-01', date_revision: '2026-01-01' },
+      { id: '2', name: 'Prod2', description: 'Desc2', logo: '', date_release: '2025-01-01', date_revision: '2026-01-01' },
     ];
-    productServiceMock.getProducts.and.returnValue(of({ data: mockProducts }));
+    productServiceMock.getProducts.mockReturnValue(of({ data: mockProducts }));
 
     component.loadProducts();
 
     expect(productServiceMock.getProducts).toHaveBeenCalled();
-    expect(component.isLoading).toBeFalse();
+    expect(component.isLoading).toBeFalsy();
     expect(component.products.length).toBe(2);
     expect(component.filteredProducts.length).toBe(2);
     expect(component.message).toBeNull();
-    expect(component.isError).toBeFalse();
+    expect(component.isError).toBeFalsy();
   });
 
   it('debería manejar error si loadProducts falla', () => {
-    productServiceMock.getProducts.and.returnValue(
-      throwError('Error simulado')
-    );
+    productServiceMock.getProducts.mockReturnValue(throwError('Error simulado'));
 
     component.loadProducts();
 
-    expect(component.isLoading).toBeFalse();
-    expect(component.isError).toBeTrue();
-    expect(component.message).toBe(
-      'No se pudieron cargar los productos. Intente más tarde.'
-    );
+    expect(component.isLoading).toBeFalsy();
+    expect(component.isError).toBeTruthy();
+    expect(component.message).toBe('No se pudieron cargar los productos. Intente más tarde.');
   });
 
   it('applyFilter() sin texto debe resetear filteredProducts', () => {
     component.products = [
-      { id: '1', name: 'Prod1', description: 'Desc1' } as Product,
-      { id: '2', name: 'Prod2', description: 'Desc2' } as Product,
+      { id: '1', name: 'Prod1', description: 'Desc1', logo: '', date_release: '2025-01-01', date_revision: '2026-01-01' },
+      { id: '2', name: 'Prod2', description: 'Desc2', logo: '', date_release: '2025-01-01', date_revision: '2026-01-01' },
     ];
     component.searchText = '';
     component.applyFilter();
@@ -74,8 +70,8 @@ describe('ProductListComponent', () => {
 
   it('applyFilter() con texto debe filtrar', () => {
     component.products = [
-      { id: '1', name: 'Prod1', description: 'Alpha' } as Product,
-      { id: '2', name: 'Prod2', description: 'Beta' } as Product,
+      { id: '1', name: 'Prod1', description: 'Alpha', logo: '', date_release: '2025-01-01', date_revision: '2026-01-01' },
+      { id: '2', name: 'Prod2', description: 'Beta',  logo: '', date_release: '2025-01-01', date_revision: '2026-01-01' },
     ];
     component.searchText = 'alpha';
     component.applyFilter();
@@ -89,40 +85,40 @@ describe('ProductListComponent', () => {
   });
 
   it('debería eliminar producto en onConfirmDelete()', () => {
-    component.selectedProduct = { id: '1', name: 'Test' } as Product;
-    component.products = [component.selectedProduct, { id: '2' } as Product];
-    productServiceMock.deleteProduct.and.returnValue(of({ message: null }));
+    component.selectedProduct = { id: '1', name: 'Test', logo: '', description: '', date_release: '', date_revision: '' } as Product;
+    component.products = [component.selectedProduct, { id: '2', name: 'Prod2', logo: '', description: '', date_release: '', date_revision: '' } as Product];
+    productServiceMock.deleteProduct.mockReturnValue(of({ message: null }));
 
     component.onConfirmDelete();
 
     expect(productServiceMock.deleteProduct).toHaveBeenCalledWith('1');
     expect(component.products.length).toBe(1);
-    expect(component.message).toBeNull(); // res.message || null
+    expect(component.message).toBeNull();
   });
 
   it('onConfirmDelete() debe manejar error', () => {
-    component.selectedProduct = { id: '1', name: 'Test' } as Product;
+    component.selectedProduct = { id: '1', name: 'Test', logo: '', description: '', date_release: '', date_revision: '' } as Product;
     component.products = [component.selectedProduct];
-    productServiceMock.deleteProduct.and.returnValue(throwError('Error x'));
+    productServiceMock.deleteProduct.mockReturnValue(throwError('Error x'));
 
     component.onConfirmDelete();
 
-    expect(component.isError).toBeTrue();
+    expect(component.isError).toBeTruthy();
     expect(component.message).toContain('Error al eliminar el producto');
-    expect(component.showModal).toBeFalse();
+    expect(component.showModal).toBeFalsy();
   });
 
   it('onCancelDelete() debe cerrar modal sin eliminar', () => {
     component.showModal = true;
     component.onCancelDelete();
-    expect(component.showModal).toBeFalse();
+    expect(component.showModal).toBeFalsy();
   });
 
   it('toggleDropdown() debe alternar valor en isDropdownOpen[index]', () => {
     component.isDropdownOpen = [false, false];
     component.toggleDropdown(0);
-    expect(component.isDropdownOpen[0]).toBeTrue();
+    expect(component.isDropdownOpen[0]).toBeTruthy();
     component.toggleDropdown(0);
-    expect(component.isDropdownOpen[0]).toBeFalse();
+    expect(component.isDropdownOpen[0]).toBeFalsy();
   });
 });

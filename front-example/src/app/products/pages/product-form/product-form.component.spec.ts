@@ -1,9 +1,18 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import { ProductFormComponent } from './product-form.component';
 import { ProductService } from '../../../core/services/product.service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { of, throwError, Observable } from 'rxjs';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  AbstractControl,
+} from '@angular/forms';
 
 describe('ProductFormComponent', () => {
   let component: ProductFormComponent;
@@ -14,27 +23,20 @@ describe('ProductFormComponent', () => {
 
   beforeEach(async () => {
     mockProductService = {
-      addProduct: jasmine.createSpy('addProduct'),
-      updateProduct: jasmine.createSpy('updateProduct'),
-      verifyProductId: jasmine
-        .createSpy('verifyProductId')
-        .and.returnValue(of(false)),
+      addProduct: jest.fn(),
+      updateProduct: jest.fn(),
+      verifyProductId: jest.fn().mockReturnValue(of(false)),
     };
 
     mockRouter = {
-      navigate: jasmine.createSpy('navigate'),
+      navigate: jest.fn(),
     };
 
-    mockActivatedRoute = {
-      // Simula que no hay :id en la ruta => modo creación
-      params: of({}),
-    };
+    // Simula ruta sin ID para modo creación
+    mockActivatedRoute = { params: of({}) };
 
     await TestBed.configureTestingModule({
-      imports: [
-        ReactiveFormsModule,
-        ProductFormComponent, // standalone
-      ],
+      imports: [ReactiveFormsModule, ProductFormComponent],
       providers: [
         FormBuilder,
         { provide: ProductService, useValue: mockProductService },
@@ -55,89 +57,85 @@ describe('ProductFormComponent', () => {
   });
 
   it('debería inicializar el formulario en modo creación (isEditMode = false)', () => {
-    expect(component.isEditMode).toBeFalse();
+    expect(component.isEditMode).toBeFalsy();
     expect(component.productForm).toBeDefined();
-    // Campo ID habilitado
-    expect(component.productForm.get('id')?.disabled).toBeFalse();
+    // Campo ID habilitado en modo creación
+    expect(component.productForm.get('id')?.disabled).toBeFalsy();
   });
 
   it('submit() con formulario inválido no llama servicio', () => {
-    // Forzamos el formulario a ser inválido
     component.productForm.patchValue({
-      id: '', // Requerido
-      name: 'abc', // minLength(5)
-      description: '', // requerido
+      id: '', // inválido (requerido)
+      name: 'abc', // inválido (minLength 5)
+      description: '', // inválido (requerido)
       logo: '',
       date_release: '',
     });
-
     component.onSubmit();
-    // No se debería llamar a add ni update
     expect(mockProductService.addProduct).not.toHaveBeenCalled();
     expect(mockProductService.updateProduct).not.toHaveBeenCalled();
   });
 
-  it('submit() en modo creación debe llamar addProduct', () => {
-    // Llenamos datos válidos
+  it('submit() en modo creación debe llamar addProduct y navegar', fakeAsync(() => {
     component.productForm.patchValue({
       id: 'PROD1',
       name: 'Producto largo',
-      description: 'desc con más de 10 caracteres',
+      description: 'Descripción con más de 10 caracteres',
       logo: 'some-logo.jpg',
       date_release: '2025-02-18', // fecha futura
     });
     component.isEditMode = false;
-
-    mockProductService.addProduct.and.returnValue(of({ message: 'Creado ok' }));
+    mockProductService.addProduct.mockReturnValue(of({ message: 'Creado ok' }));
     component.onSubmit();
-
     expect(mockProductService.addProduct).toHaveBeenCalled();
-    expect(component.isError).toBeFalse();
+    expect(component.isError).toBeFalsy();
     expect(component.message).toBe('Creado ok');
-    // Debería navegar tras 1s => no testeamos el setTimeout,
-    // pero podríamos si quisiéramos usar fakeAsync/tick
-  });
 
-  it('submit() en modo edición llama a updateProduct', () => {
+    tick(1000); // Simula el setTimeout
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/products']);
+  }));
+
+  it('submit() en modo edición llama a updateProduct y navega', fakeAsync(() => {
     component.isEditMode = true;
-    component.productId = '123'; // la ruta simula { id: '123' }
+    component.productId = '123';
     component.productForm.patchValue({
-      id: 'NO-EDIT', // Deshabilitado, no se pasa en getRawValue
+      id: 'NO-EDIT', // Este valor no se usa porque el control está deshabilitado
       name: 'Producto Edit',
-      description: 'desc con más de 10 caracteres',
+      description: 'Descripción con más de 10 caracteres',
       logo: 'some-logo.jpg',
       date_release: '2025-02-18',
     });
-
-    mockProductService.updateProduct.and.returnValue(
+    mockProductService.updateProduct.mockReturnValue(
       of({ message: 'Actualizado ok' })
     );
     component.onSubmit();
-
     expect(mockProductService.updateProduct).toHaveBeenCalledWith(
       '123',
-      jasmine.any(Object)
+      expect.any(Object)
     );
-    expect(component.isError).toBeFalse();
+    expect(component.isError).toBeFalsy();
     expect(component.message).toBe('Actualizado ok');
-  });
+
+    tick(1000);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/products']);
+  }));
 
   it('debería manejar error en updateProduct', () => {
     component.isEditMode = true;
     component.productId = '123';
     component.productForm.patchValue({
+      id: 'IGNORED',
       name: 'Producto Edit',
-      description: 'desc con más de 10 caracteres',
+      description: 'Descripción con más de 10 caracteres',
       logo: 'some-logo.jpg',
       date_release: '2025-02-18',
     });
-    mockProductService.updateProduct.and.returnValue(
+    mockProductService.updateProduct.mockReturnValue(
       throwError('Error simulado')
     );
-
     component.onSubmit();
-    expect(component.isError).toBeFalse();
-    expect(component.message).toBeNull();
+    expect(component.isError).toBeTruthy();
+    expect(component.message).toContain('Error al actualizar');
   });
 
   it('onReset() en modo creación debe resetear formulario', () => {
@@ -149,9 +147,8 @@ describe('ProductFormComponent', () => {
       logo: 'logo.jpg',
       date_release: '2025-01-01',
     });
-
     component.onReset();
-    // Angular reset => cada control vuelve a null (por defecto)
+    // Por defecto, Angular reset() asigna null a cada control
     expect(component.productForm.value.id).toBeNull();
     expect(component.productForm.value.name).toBeNull();
   });
@@ -165,12 +162,9 @@ describe('ProductFormComponent', () => {
   it('debería recalcular date_revision cuando cambia date_release', () => {
     const dateReleaseCtrl = component.productForm.get('date_release');
     const dateRevisionCtrl = component.productForm.get('date_revision');
-
     dateReleaseCtrl?.setValue('2025-02-18');
     fixture.detectChanges();
-    // Esperamos que date_revision sea un año después => 2026-02-18
-    const revValue = dateRevisionCtrl?.value;
-    expect(revValue).toBe('2026-02-18');
+    expect(dateRevisionCtrl?.value).toBe('2026-02-18');
   });
 
   it('Validador dateValidator: date_release < hoy => invalidReleaseDate', () => {
@@ -186,9 +180,26 @@ describe('ProductFormComponent', () => {
       date_release: isoPast,
       date_revision: isoPast,
     });
-
-    // Forzamos la validación
-    const errors = component.productForm.errors;
-    expect(errors?.['invalidReleaseDate']).toBeTrue();
+    const errors = component.dateValidator(component.productForm);
+    expect(errors?.['invalidReleaseDate']).toBeTruthy();
   });
+
+  it('Validador dateValidator: si date_revision no es release + 1 año EXACTAMENTE, retorna invalidRevisionDate', () => {
+    component.productForm.patchValue({
+      date_release: '2025-02-18',
+      date_revision: '2026-02-19', // Un día de diferencia
+    });
+    const errors = component.dateValidator(component.productForm);
+    expect(errors?.['invalidRevisionDate']).toBeTruthy();
+  });
+
+  // Test directo para idExistsValidator en el caso de no tener valor
+  it('idExistsValidator() debería retornar null si no hay valor', fakeAsync(() => {
+    const validator = component.idExistsValidator();
+    (validator({ value: '' } as AbstractControl) as Observable<any>).subscribe(
+      (result) => {
+        expect(result).toBeNull();
+      }
+    );
+  }));
 });

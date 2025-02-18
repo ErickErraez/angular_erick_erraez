@@ -67,7 +67,7 @@ describe('ProductService', () => {
 
   it('debería verificar ID con verifyProductId()', () => {
     service.verifyProductId('abc').subscribe((exists) => {
-      expect(exists).toBeTrue();
+      expect(exists).toBeTruthy();
     });
 
     const req = httpMock.expectOne(`${baseUrl}/verification/abc`);
