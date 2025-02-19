@@ -10,7 +10,7 @@
 }
 
 .form-container {
-  background: #fff; 
+  background: #fff;
   padding: 0.5rem 2rem;
   border-radius: 8px;
   max-width: 700px;
@@ -105,6 +105,23 @@
     &:last-child {
       background-color: #f8d330;
     }
+  }
+}
+
+.btn-yellow {
+  background-color: #f8d330;
+  background-color: #f8d330;
+  color: #0f265c;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  transition: background-color 0.3s;
+
+  &:disabled {
+    background-color: #f8d330 !important;
+    border-color: yellow !important;
+    color: #0f265c !important;
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

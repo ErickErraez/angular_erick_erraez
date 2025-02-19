@@ -144,7 +144,13 @@
       <!-- Botones -->
       <div class="form-row actions">
         <button type="button" (click)="onReset()">Reiniciar</button>
-        <button type="submit">{{ isEditMode ? "Editar" : "Enviar" }}</button>
+        <button
+          [disabled]="productForm.invalid"
+          class="btn-yellow"
+          type="submit"
+        >
+          {{ isEditMode ? "Editar" : "Enviar" }}
+        </button>
       </div>
     </form>
   </div>
