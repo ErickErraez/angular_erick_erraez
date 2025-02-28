@@ -143,9 +143,11 @@
 
       <!-- Botones -->
       <div class="form-row actions">
-        <button type="button" (click)="onReset()">Reiniciar</button>
+        <button [disabled]="isSaved" type="button" (click)="onReset()">
+          Reiniciar
+        </button>
         <button
-          [disabled]="productForm.invalid"
+          [disabled]="productForm.invalid || isSaved"
           class="btn-yellow"
           type="submit"
         >

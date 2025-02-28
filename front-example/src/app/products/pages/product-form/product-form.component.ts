@@ -24,6 +24,7 @@ import { map, catchError } from 'rxjs/operators';
 export class ProductFormComponent implements OnInit {
   message: string | null = null; // Mensaje de error o éxito
   isError: boolean = false; // Para decidir si es alert-danger o alert-success
+  isSaved: boolean = false; // Para bloquear el boton cuando se guarde
 
   productForm!: FormGroup;
   isEditMode: boolean = false;
@@ -173,6 +174,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   onSubmit(): void {
+    this.isSaved = true;
     if (this.productForm.invalid) {
       this.productForm.markAllAsTouched();
       return;
@@ -191,10 +193,10 @@ export class ProductFormComponent implements OnInit {
       next: (res) => {
         this.message = res.message;
         this.isError = false;
-        // Redirige tras 1 seg
+        // Redirige tras 500 milisegundos
         setTimeout(() => {
           this.router.navigate(['/products']);
-        }, 1000);
+        }, 500);
       },
       error: (err) => {
         this.isError = true;
