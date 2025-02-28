@@ -77,16 +77,21 @@ describe('ProductFormComponent', () => {
   });
 
   it('submit() en modo creación debe llamar addProduct y navegar', fakeAsync(() => {
+    // Usar una fecha futura para que el formulario sea válido
     component.productForm.patchValue({
       id: 'PROD1',
       name: 'Producto largo',
       description: 'Descripción con más de 10 caracteres',
       logo: 'some-logo.jpg',
-      date_release: '2025-02-18', // fecha futura
+      date_release: '2099-01-01', // fecha futura
     });
     component.isEditMode = false;
     mockProductService.addProduct.mockReturnValue(of({ message: 'Creado ok' }));
+
+    tick(); // Resuelve validadores asíncronos y valueChanges
+
     component.onSubmit();
+
     expect(mockProductService.addProduct).toHaveBeenCalled();
     expect(component.isError).toBeFalsy();
     expect(component.message).toBe('Creado ok');
@@ -98,17 +103,22 @@ describe('ProductFormComponent', () => {
   it('submit() en modo edición llama a updateProduct y navega', fakeAsync(() => {
     component.isEditMode = true;
     component.productId = '123';
+    // Usar una fecha futura para que el formulario sea válido
     component.productForm.patchValue({
       id: 'NO-EDIT', // Este valor no se usa porque el control está deshabilitado
       name: 'Producto Edit',
       description: 'Descripción con más de 10 caracteres',
       logo: 'some-logo.jpg',
-      date_release: '2025-02-18',
+      date_release: '2099-01-01',
     });
     mockProductService.updateProduct.mockReturnValue(
       of({ message: 'Actualizado ok' })
     );
+
+    tick(); // Resuelve validadores asíncronos y valueChanges
+
     component.onSubmit();
+
     expect(mockProductService.updateProduct).toHaveBeenCalledWith(
       '123',
       expect.any(Object)
@@ -120,23 +130,28 @@ describe('ProductFormComponent', () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/products']);
   }));
 
-  it('debería manejar error en updateProduct', () => {
+  it('debería manejar error en updateProduct', fakeAsync(() => {
     component.isEditMode = true;
     component.productId = '123';
+    // Usar una fecha futura para que el formulario sea válido
     component.productForm.patchValue({
       id: 'IGNORED',
       name: 'Producto Edit',
       description: 'Descripción con más de 10 caracteres',
       logo: 'some-logo.jpg',
-      date_release: '2025-02-18',
+      date_release: '2099-01-01',
     });
     mockProductService.updateProduct.mockReturnValue(
       throwError('Error simulado')
     );
+
+    tick(); // Resuelve validadores asíncronos y valueChanges
+
     component.onSubmit();
+
     expect(component.isError).toBeTruthy();
     expect(component.message).toContain('Error al actualizar');
-  });
+  }));
 
   it('onReset() en modo creación debe resetear formulario', () => {
     component.isEditMode = false;
@@ -145,7 +160,7 @@ describe('ProductFormComponent', () => {
       name: 'Nombre',
       description: 'Desc',
       logo: 'logo.jpg',
-      date_release: '2025-01-01',
+      date_release: '2099-01-01',
     });
     component.onReset();
     // Por defecto, Angular reset() asigna null a cada control
@@ -185,10 +200,13 @@ describe('ProductFormComponent', () => {
   });
 
   it('Validador dateValidator: si date_revision no es release + 1 año EXACTAMENTE, retorna invalidRevisionDate', () => {
-    component.productForm.patchValue({
-      date_release: '2025-02-18',
-      date_revision: '2026-02-19', // Un día de diferencia
-    });
+    // Evitar que la suscripción modifique el valor usando { emitEvent: false }
+    component.productForm
+      .get('date_release')
+      ?.setValue('2099-01-01', { emitEvent: false });
+    component.productForm
+      .get('date_revision')
+      ?.setValue('2100-01-02', { emitEvent: false });
     const errors = component.dateValidator(component.productForm);
     expect(errors?.['invalidRevisionDate']).toBeTruthy();
   });
